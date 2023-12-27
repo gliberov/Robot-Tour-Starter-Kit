@@ -4,8 +4,7 @@ By: Youwei Zhen 12/27/2023
 
 **IMPORTANT:**
 ```
-1. Install I2CDev.h library zip file by adding the zip file as a library.
-2. All code should be written inside the Robot-Tour-Starter-Kit.ino file.
+1. All code should be written inside the Robot-Tour-Starter-Kit.ino file.
 ```
 
 ## Includes:
