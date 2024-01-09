@@ -1,23 +1,3 @@
-# Abstractions of ELEGO V4
+# Taken from ELEGOO Smart Robot Car Kit V4.0 2023.02.01\03 Tutorial & Code\02 SmartRobotCarV4.0_Move\TB6612 & MPU6050\Demo1
 
-By: Youwei Zhen 12/27/2023
-
-**SETUP:**
-```
-1. Make sure the folder that Robot-Tour-Starter-Kit.ino is named "Robot-Tour-Starter-Kit"
-2. Install the I2CDev library. Sketch -> Include Library -> Add .ZIP Library -> Select the I2CDev.zip.
-3. All code should be written inside the Robot-Tour-Starter-Kit.ino file.
-```
-
-## Includes:
-- Abstraction for cardinal movements:
-    - moveForward(int speed) <- speed is an analog value between 0 - 255
-    - moveBackward(int speed)
-    - moveLeft(int speed)
-    - moveRight(int speed)
-    - turnLeft(int speed)
-    - turnRight(int speed)
-
-- Gyroscope handling
-    - Self-corrects moveForward/Backwards angle
-    - Close to perfect 90 degree turn for turnLeft/Right
+By: Youwei Zhen 12/08/2023

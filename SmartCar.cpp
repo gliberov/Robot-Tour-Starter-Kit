@@ -1,12 +1,15 @@
-#include "avr/wdt.h"
+#include <avr/wdt.h>
 #include "DeviceDriverSet_xxx0.h"
 #include "ApplicationFunctionSet_xxx0.cpp"
+#include <Arduino.h>
+
 extern DeviceDriverSet_Motor AppMotor;
 extern Application_xxx Application_ConquerorCarxxx0;
 extern MPU6050_getdata AppMPU6050getdata;
 
-static bool debug = true;
-const float offset = 0.0;
+static bool debug_yaw = true;
+const float adjust_threshold = 5.0;
+const int lowest_speed = 40;
 
 class SmartCar
 {
@@ -25,7 +28,7 @@ private:
 
         // Gradually reduce speed based on the remaining angle
         int speed = initialSpeed * (remainingAngle / 90); // Assuming 90 is the max turn angle
-        if (speed < 50) speed = 50; // Enforce a minimum speed of 50
+        if (speed < lowest_speed) speed = lowest_speed; // Enforce a minimum speed of 50
 
         // Turn logic
         return speed;
@@ -35,18 +38,48 @@ private:
         return round(number / 90.0f) * 90.0f;
     }
 
+    void recarlibrate(){
+        this->stop();
+        AppMPU6050getdata.MPU6050_calibration();
+        this->updateYawReference();
+    }
+
+
+    void turnTillTarget(int speed, float target, bool turnLeft, bool (*condition)(float yaw, float target)){
+        updateYawReference();
+        AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
+        while (condition(Yaw, target))
+        {
+            this->updateYawReference();
+            // AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
+            if (turnLeft) this->moveLeft(calculateGradualSpeed(Yaw, target, speed));
+            else this->moveRight(calculateGradualSpeed(Yaw, target, speed));
+            if (debug_yaw)
+                Serial.println("Current Yaw: " + String(Yaw) + " | target: " + String(target));
+        }
+
+        this->stop();
+    }
+
 public:
     void init()
     {
         // Serial.begin(9600);
         AppMotor.DeviceDriverSet_Motor_Init();
         AppMPU6050getdata.MPU6050_dveInit();
-        delay(2000);
+        // delay(2000);
         AppMPU6050getdata.MPU6050_calibration();
     }
 
-    void moveFoward(int speed)
+    void printAngle(){
+        AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
+        Serial.println("Current Angle: " + String(Yaw));
+    }
+
+    void moveForward(int speed)
     {
+        // this->adjust(10);
+        this->stop();
         updateYawReference();
         ApplicationFunctionSet_ConquerorCarMotionControl(
             ConquerorCarMotionControl::Forward,
@@ -56,6 +89,8 @@ public:
 
     void moveBackward(int speed)
     {
+        this->stop();
+        // this->adjust(speed);
         updateYawReference();
         ApplicationFunctionSet_ConquerorCarMotionControl(
             ConquerorCarMotionControl::Backward,
@@ -73,19 +108,11 @@ public:
 
     void turnLeft(int speed)
     {
-        AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
-        float target = closestMultipleOf90(Yaw - 90 + offset);
-
-        while (Yaw > target)
-        {
-            AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
-            this->moveLeft(calculateGradualSpeed(Yaw, target, speed));
-            if (debug)
-                Serial.println("Current Yaw: " + String(Yaw) + " | target: " + String(target));
-        }
-        updateYawReference();
         this->stop();
-        delay(125);
+        AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
+        float target = closestMultipleOf90(Yaw - 90);
+        turnTillTarget(speed, target, true, [](float Yaw, float target) { return Yaw > target; });
+        this->adjust(speed);
     }
 
     void moveRight(int speed)
@@ -98,47 +125,31 @@ public:
 
     void turnRight(int speed)
     {
-        AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
-        float target = Yaw + 90 + offset;
-
-        while (Yaw < target)
-        {
-            AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
-            this->moveRight(calculateGradualSpeed(Yaw, target, speed));
-            if (debug)
-                Serial.println("Current Yaw: " + String(Yaw) + " | target: " + String(target));
-        }
-
         this->stop();
-        updateYawReference();
+        AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
+        float target = closestMultipleOf90(Yaw + 90);
+        turnTillTarget(speed, target, false, [](float Yaw, float target) { return Yaw < target; });
+        this->adjust(speed);
     }
 
     void adjust(int speed){
-
+        
+        this->stop();
         AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
         float target = closestMultipleOf90(Yaw);
+        if (debug_yaw) Serial.println("Offset Angle: " + String(Yaw-target));
+        // delay(5000);
+        if (abs(Yaw - target) <= adjust_threshold) return;
 
         Serial.println("Adjust Target | Current Yaw: " + String(Yaw) + " | target: " + String(target));
 
         if (Yaw > target){ // too far right, turn left
-            while (Yaw > target)
-            {
-                AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
-                this->moveLeft(calculateGradualSpeed(Yaw, target, speed));
-                if (debug)
-                    Serial.println("Adjusting | Current Yaw: " + String(Yaw) + " | target: " + String(target));
-            }
+            turnTillTarget(speed, target, true, [](float Yaw, float target) { return Yaw > target; });
         }else{ // too far left, turn right
-            while (Yaw < target)
-            {
-                AppMPU6050getdata.MPU6050_dveGetEulerAngles(&Yaw);
-                this->moveRight(calculateGradualSpeed(Yaw, target, speed));
-                if (debug)
-                    Serial.println("Adjusting | Current Yaw: " + String(Yaw) + " | target: " + String(target));
-            }
+            turnTillTarget(speed, target, false, [](float Yaw, float target) { return Yaw < target; });
         }
-
         this->stop();
+        AppMPU6050getdata.resetYawAtIntervals();
     }
 
     void stop()
