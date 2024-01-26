@@ -76,6 +76,22 @@ public:
         Serial.println("Current Angle: " + String(Yaw));
     }
 
+    void moveForwardForSeconds(int speed, float ms){
+        for (int i = 0; i < ms/10; i ++){
+            this->moveForward(speed);
+            delay(10);
+        }
+        this->stop();
+    }
+
+    void moveBackwardForSeconds(int speed, float ms){
+        for (int i = 0; i < ms/10; i ++){
+            this->moveBackward(speed);
+            delay(10);
+        }
+        this->stop();
+    }
+
     void moveForward(int speed)
     {
         // this->adjust(10);
