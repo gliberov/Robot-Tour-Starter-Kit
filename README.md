@@ -22,7 +22,7 @@ By: Youwei Zhen 12/27/2023
     - moveBackwardForSeconds(int speed, int ms) <- drives **PERFECTLY** straight backward for ms milliseconds.
     - moveForward(int speed) <- speed is an analog value between 0 - 255
     - moveBackward(int speed)
-    - moveLeft(int speed)
+    - moveLeft(int speed)`
     - moveRight(int speed)
     - turnLeft(int speed) <- Turns approx. 90 deg
     - turnRight(int speed) <- Turns approx. 90 deg

@@ -8,7 +8,7 @@ extern Application_xxx Application_ConquerorCarxxx0;
 extern MPU6050_getdata AppMPU6050getdata;
 
 static bool debug_yaw = true;
-const float adjust_threshold = 5.0;
+const float adjust_threshold = 2.5;
 const int lowest_speed = 40;
 
 class SmartCar
